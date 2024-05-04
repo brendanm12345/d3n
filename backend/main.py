@@ -32,9 +32,10 @@ def issue_to_basemodel(issue_url):
     return GitHubIssue(title=title, body=full_string, url=issue_url)
 
 @app.post("/rank-issues/")
-async def rank_issues():
-    issue_urls = get_state()
-    if len(issue_urls) == 0:
+async def rank_issues(in_issue_urls: List[str]):
+    if in_issue_urls and len(in_issue_urls) > 0:
+        issue_urls = in_issue_urls
+    else:
         issue_urls = [
             "https://github.com/brendanm12345/wordle/issues/4",
             "https://github.com/brendanm12345/wordle/issues/3",
