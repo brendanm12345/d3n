@@ -196,14 +196,11 @@ async def get_next_failure():
     return next_failure
 
 
-@app.post('/add_retry/{info}')
-def add_retry(info: List[str]):
+@app.post('/add_retry/')
+def add_retry(info: Dict[str, str]):
     # Ensure orchestrator creates a list info consisting of the url (idx 0) and the revised playbook (idx 1)
     state = get_state()
-    
-    issue = {'url': info[0], 'playbook': info[1]}
-    state['issues'].append(issue)
-
+    state['issues'].append(info)
     save_state(state)
 
     return 'ok'
