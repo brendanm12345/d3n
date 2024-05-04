@@ -27,9 +27,12 @@ class GitHubIssue(BaseModel):
 async def read_root():
     return {"message": "Hello World"}
 
-def issue_to_basemodel(issue_url):
-    title, full_string = get_issue_details(issue_url, os.getenv('GITHUB_API_KEY'))
-    return GitHubIssue(title=title, body=full_string, url=issue_url)
+@app.post('/repository')
+def set_repository(repository: str):
+    state = get_state()
+    state.repository = repository
+    save_state(state)
+    return 'ok'
 
 @app.post("/rank-issues/")
 async def rank_issues(in_issue_urls: List[str]):
@@ -61,11 +64,19 @@ async def rank_issues(in_issue_urls: List[str]):
 
         ranked_issues_json = response.choices[0].message.content.strip()
         ranked_issues = json.loads(ranked_issues_json)
-        save_state(ranked_issues)
+        state = get_state()
+        state.links = ranked_issues
+        save_state(state)
         return 'ok'
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+def issue_to_basemodel(issue_url):
+    title, full_string = get_issue_details(issue_url, os.getenv('GITHUB_API_KEY'))
+    return GitHubIssue(title=title, body=full_string, url=issue_url)
 
 
 @app.get('/instructions.devin.md')
@@ -78,12 +89,12 @@ async def get_starting_prompt() -> str:
 
 @app.get('/rank-issues/top')
 async def get_next_issue() -> str:
-    all_links = get_state()
+    state = get_state()
     # Remove the first line
-    if len(all_links) > 0:
-        link = all_links.pop(0)
+    if len(state.links) > 0:
+        link = state.links.pop(0)
     else:
         raise HTTPException(status_code=404, detail="No more data :(")
     
-    save_state(all_links)    
+    save_state(state)    
     return RedirectResponse(url=link)

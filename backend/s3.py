@@ -8,7 +8,10 @@ def get_state():
         return json.loads(obj['Body'].read().decode('utf-8'))
     except Exception as e:
         print(e)
-        return []
+        return {
+            'repository': 'https://github.com/brendanm12345/wordle',
+            'links': []
+        }
 
 def save_state(state):
     s3 = boto3.client('s3')
