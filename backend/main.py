@@ -30,21 +30,19 @@ async def read_root():
 @app.post('/repository')
 def set_repository(repository: str):
     state = get_state()
-    state.repository = repository
+    state['repository'] = repository
     save_state(state)
     return 'ok'
 
+FALLBACK_URLS = [
+    "https://github.com/brendanm12345/wordle/issues/4",
+    "https://github.com/brendanm12345/wordle/issues/3",
+    "https://github.com/brendanm12345/wordle/issues/2",
+    "https://github.com/brendanm12345/wordle/issues/1"
+]
+
 @app.post("/rank-issues/")
-async def rank_issues(in_issue_urls: List[str]):
-    if in_issue_urls and len(in_issue_urls) > 0:
-        issue_urls = in_issue_urls
-    else:
-        issue_urls = [
-            "https://github.com/brendanm12345/wordle/issues/4",
-            "https://github.com/brendanm12345/wordle/issues/3",
-            "https://github.com/brendanm12345/wordle/issues/2",
-            "https://github.com/brendanm12345/wordle/issues/1"
-        ]
+async def rank_issues(issue_urls: List[str] = FALLBACK_URLS):
     issues = [issue_to_basemodel(issue) for issue in issue_urls]
     try:
         prompt = "\n".join(
@@ -65,7 +63,7 @@ async def rank_issues(in_issue_urls: List[str]):
         ranked_issues_json = response.choices[0].message.content.strip()
         ranked_issues = json.loads(ranked_issues_json)
         state = get_state()
-        state.links = ranked_issues
+        state['links'] = ranked_issues
         save_state(state)
         return 'ok'
     except Exception as e:
@@ -91,8 +89,8 @@ async def get_starting_prompt() -> str:
 async def get_next_issue() -> str:
     state = get_state()
     # Remove the first line
-    if len(state.links) > 0:
-        link = state.links.pop(0)
+    if len(state['links']) > 0:
+        link = state['links'].pop(0)
     else:
         raise HTTPException(status_code=404, detail="No more data :(")
     
