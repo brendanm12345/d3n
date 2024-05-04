@@ -12,6 +12,7 @@ from s3 import get_state, save_state
 client = OpenAI()
 
 app = FastAPI()
+success = []
 
 @app.get("/")
 async def read_root():
@@ -105,4 +106,10 @@ async def peek_next_issue() -> str:
         return state['links'][0]
     else: 
         raise HTTPException(status_code=404, detail="No more data :(")
+    
+
+@app.post('/post_successful/{issue_id}')
+async def post_successful_issue(issue_id: int): 
+    success.append(issue_id)
+    return "appended successful issue"
 
