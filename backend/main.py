@@ -96,3 +96,13 @@ async def get_next_issue() -> str:
     
     save_state(state)    
     return RedirectResponse(url=link)
+
+@app.get('/rank-issues/peek')
+async def peek_next_issue() -> str:
+    state = get_state() 
+    
+    if len(state['links']) > 0: 
+        return state['links'][0]
+    else: 
+        raise HTTPException(status_code=404, detail="No more data :(")
+
