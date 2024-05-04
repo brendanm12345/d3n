@@ -34,6 +34,7 @@ class GitHubIssue(BaseModel):
     title: str
     body: str
     url: str
+    playbook: str = None
 
 
 @app.get("/")
@@ -58,7 +59,7 @@ FALLBACK_URLS = [
 
 
 @app.post("/repository/")
-async def repository(repository=FALLBACK_REPO):
+async def repository(repository: str = FALLBACK_REPO):
     state = get_state()
     state['repository'] = repository
     issue_urls = get_all_issues(repository)
@@ -68,7 +69,6 @@ async def repository(repository=FALLBACK_REPO):
             [f"{i + 1}: Title: {issue.title}, Body: {issue.body}, URL: {issue.url}" for i,
                 issue in enumerate(issues)]
         )
-
         messages = [
             {"role": "system",
                 "content": "You are a GitHub issue ranker, skilled in prioritizing issues based on their difficulty. Easiest issues should come first, and order them from easiest to hardest. You only output JSON with no explanation or preamble. Example of response: [\"https://example.com/url1\", \"https://example.com/url2\", ...]. Only output the JSON, nothing else."},
@@ -79,10 +79,10 @@ async def repository(repository=FALLBACK_REPO):
             messages=messages,
             temperature=0,
         )
-
         ranked_issues_json = response.choices[0].message.content.strip()
         ranked_issues = json.loads(ranked_issues_json)
-        state['links'] = ranked_issues
+        state['issues'] = [{"url": issue, "playbook": None}
+                           for issue in ranked_issues]  # Updated structure
         save_state(state)
         return ranked_issues
     except Exception as e:
@@ -91,9 +91,8 @@ async def repository(repository=FALLBACK_REPO):
 
 
 def issue_to_basemodel(issue_url):
-    title, full_string = get_issue_details(
-        issue_url, os.getenv('GITHUB_API_KEY'))
-    return GitHubIssue(title=title, body=full_string, url=issue_url)
+    title, body = get_issue_details(issue_url, os.getenv('GITHUB_API_KEY'))
+    return GitHubIssue(title=title, body=body, url=issue_url)
 
 
 @app.get('/instructions.devin.md')
@@ -108,41 +107,43 @@ async def get_starting_prompt() -> str:
 @app.get('/instructions/parent')
 async def orchestrate() -> str:
     state = get_state()
-    if 'repository' not in state or len(state['repository']) == 0:
+    if 'repository' not in state or not state['repository']:
         return 'No repository set. Please poll this endpoint again to re-try.'
-    if 'links' not in state or len(state['links']) == 0:
-        return 'No links set. Please poll this endpoint again to re-try.'
+    if 'issues' not in state or not state['issues']:
+        return 'No issues set. Please poll this endpoint again to re-try.'
     return """
     Repeat this process 3 times. Open a new tab to https://preview.devin.ai. Type the following text into the textbox: "Open https://d3n.fly.dev/instructions.devin.md and follow instructions" and hit enter. Do NOT visit this link yourself. Only type it into the chat box and hit enter.
     """
 
+
 @app.post('/reset')
 async def reset():
     state = get_state()
-    state['links'] = []
+    state['issues'] = []
     state['repository'] = ''
     state['failures'] = []
     state['successes'] = []
     save_state(state)
     return 'ok'
 
+
 @app.get('/rank-issues/pop')
 async def get_next_issue() -> dict:
     state = get_state()
-    repo = state['repository']
-    forked_repo = fork_repository(repo, 'akshgarg7', os.getenv('GITHUB_API_KEY'))
-
-    # we need to load the information from each issue. 
-    issue_title, issue_details = get_issue_details(state['links'][0], os.getenv('GITHUB_API_KEY'))
-
-    output_json = {
-        "title": issue_title,
-        "issue details": issue_details,
-        "forked repo": forked_repo
-    }
-
-    return output_json
-
+    if state['issues']:
+        current_issue = state['issues'].pop(0)
+        save_state(state)
+        issue_title, issue_details = get_issue_details(
+            current_issue['url'], os.getenv('GITHUB_API_KEY'))
+        forked_repo = fork_repository(
+            state['repository'], 'akshgarg7', os.getenv('GITHUB_API_KEY'))
+        return {
+            "title": issue_title,
+            "issue details": issue_details,
+            "forked repo": forked_repo
+        }
+    else:
+        raise HTTPException(status_code=404, detail="No more issues :)")
 
     # state = get_state()
     # # Remove the first line
@@ -150,8 +151,8 @@ async def get_next_issue() -> dict:
     #     link = state['links'].pop(0)
     # else:
     #     raise HTTPException(status_code=404, detail="No more data :(")
-    
-    # save_state(state)    
+
+    # save_state(state)
 
     # return RedirectResponse(url=link)
 
@@ -159,16 +160,14 @@ async def get_next_issue() -> dict:
 @app.get('/rank-issues/peek')
 async def peek_next_issue() -> str:
     state = get_state()
-
-    if len(state['links']) > 0:
-        return state['links'][0]
+    if state['issues']:
+        return state['issues'][0]['url']
     else:
-        raise HTTPException(status_code=404, detail="No more data :(")
+        raise HTTPException(status_code=404, detail="No more issues :(")
 
 
 @app.post('/success')
 async def success(issue: Annotated[str, Body()], description: Annotated[str, Body()], pr_link: Annotated[str, Body()]):
-    # patch_url = create_patch(patch_file)
     url = "https://interactify.email/api/internal/email?from=soham"
     headers = {'Content-Type': 'application/json'}
     requests.post(url, headers=headers, data=json.dumps({
@@ -182,10 +181,23 @@ async def success(issue: Annotated[str, Body()], description: Annotated[str, Bod
     return 'ok'
 
 
+@app.post('/failure')
+async def failure(issue: Annotated[str, Body()], playbook_used: Annotated[str, Body()], suspected_reason: Annotated[str, Body()]):
+    failure = {
+        "issue": issue,
+        "playbook_used": playbook_used,
+        "suspected_reason": suspected_reason
+    }
+    state = get_state()
+    state['failures'].append(failure)
+    save_state(state)
+    return 'ok'
+
+
 # @app.get('/repository/create_fork')
-# def create_fork(): 
+# def create_fork():
 #     state = get_state()
-    
+
 #     github = 'https://github.com/'
 #     repo = state['repository'][len(github)::]
 
