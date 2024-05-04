@@ -1,13 +1,12 @@
-import os
 from typing import List
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from openai import OpenAI
 import json
 
 # read file .openaikey
-key = open(".openaikey", "r").readline()
-client = OpenAI(api_key=key)
+client = OpenAI()
 
 app = FastAPI()
 
@@ -64,7 +63,13 @@ async def rank_issues(issues: List[GitHubIssue]):
         return ranked_urls
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
+
+@app.get('/instructions')
+async def get_starting_prompt() -> str:
+    with open('child_prompt.md', 'r') as file:
+        return file.read()
+    raise HTTPException(status_code=404, detail="Prompt file not found")
 
 @app.get('/rank-issues/top')
 async def get_next_issue() -> str:
@@ -72,4 +77,4 @@ async def get_next_issue() -> str:
         raise HTTPException(status_code=404, detail="No items stored")
     id, link = ranked_urls[0]
     del ranked_urls[id]
-    return link
+    return RedirectResponse(link)
