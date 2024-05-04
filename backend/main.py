@@ -34,7 +34,6 @@ class GitHubIssue(BaseModel):
     title: str
     body: str
     url: str
-    playbook: str = None
 
 
 @app.get("/")
@@ -81,7 +80,7 @@ async def repository(repository: str = FALLBACK_REPO):
         )
         ranked_issues_json = response.choices[0].message.content.strip()
         ranked_issues = json.loads(ranked_issues_json)
-        state['issues'] = [{"url": issue, "playbook": None}
+        state['issues'] = [{"url": issue, "status": "queued", "failure_reason": "", "n_retries": 0}
                            for issue in ranked_issues]  # Updated structure
         save_state(state)
         return ranked_issues
@@ -121,8 +120,6 @@ async def reset():
     state = get_state()
     state['issues'] = []
     state['repository'] = ''
-    state['failures'] = []
-    state['successes'] = []
     save_state(state)
     return 'ok'
 
@@ -131,28 +128,25 @@ async def reset():
 async def get_next_issue() -> dict:
     state = get_state()
     if state['issues']:
-        current_issue = state['issues'].pop(0)
+        current_issue = next((issue for issue in state['issues'] if issue['status'] == 'queued'), None)
+        if current_issue is None:
+            raise HTTPException(status_code=404, detail="No more queued issues")
+        current_issue['status'] = 'processing'
         save_state(state)
         issue_title, issue_details = get_issue_details(
             current_issue['url'], os.getenv('GITHUB_API_KEY'))
         forked_repo = fork_repository(
             state['repository'], 'akshgarg7', os.getenv('GITHUB_API_KEY'))
         return {
-            "title": issue_title,
-            "issue details": issue_details,
-            "forked repo": forked_repo
+            "current_issue": current_issue,
+            "github_data": {
+                "issue_title": issue_title,
+                "issue_details": issue_details,
+                "forked_repo": forked_repo     
+            }
         }
     else:
         raise HTTPException(status_code=404, detail="No more issues :)")
-
-@app.get('/rank-issues/peek')
-async def peek_next_issue() -> str:
-    state = get_state()
-    if state['issues']:
-        return state['issues'][0]['url']
-    else:
-        raise HTTPException(status_code=404, detail="No more issues :(")
-
 
 @app.post('/success')
 async def success(issue: Annotated[str, Body()], description: Annotated[str, Body()], pr_link: Annotated[str, Body()]):
@@ -164,43 +158,44 @@ async def success(issue: Annotated[str, Body()], description: Annotated[str, Bod
         "timeout": 10
     }))
     state = get_state()
-    state['successes'].append(issue)
+    for cur_issue in state['issues']:
+        if cur_issue['url'] == issue:
+            cur_issue['status'] = 'success'
+            break
     save_state(state)
     return 'ok'
 
 
 @app.post('/failure')
-async def failure(issue: Annotated[str, Body()], playbook_used: Annotated[str, Body()], suspected_reason: Annotated[str, Body()]):
-    failure = {
-        "issue": issue,
-        "playbook_used": playbook_used,
-        "suspected_reason": suspected_reason
-    }
+async def failure(issue: Annotated[str, Body()], suspected_reason: Annotated[str, Body()]):
     state = get_state()
-    state['failures'].append(failure)
+    for a in state['issues']:
+        if a['url'] == issue:
+            a['status'] = 'failed'
+            a['failure_reason'] = suspected_reason
+            a['n_retries'] = a['n_retries'] + 1
+            if a['n_retries'] > 2:
+                a['status'] = 'failed permanently'
+            break
     save_state(state)
     return 'ok'
-
 
 @app.get('/retry')
 async def get_next_failure(): 
     state = get_state()
     
-    if len(state['failures']) == 0: 
-        raise HTTPException(status_code=404, detail='No more failed tasks! Please call this endpoint again to check again.')
+    for issue in state['issues']:
+        if issue['status'] == 'failed':
+            return issue
+    raise HTTPException(status_code=404, detail="No more failed issues. Please keep polling this endpoint again to re-check.")
 
-    next_failure = state['failures'].pop(0)
-
-    save_state(state)
-
-    return next_failure
-
-
-@app.post('/add_retry/')
-def add_retry(info: Dict[str, str]):
-    # Ensure orchestrator creates a list info consisting of the url (idx 0) and the revised playbook (idx 1)
+@app.post('/add_retry')
+def add_retry(issue: Annotated[str, Body()], new_plan: Annotated[str, Body()]):
     state = get_state()
-    state['issues'].append(info)
+    for a in state['issues']:
+        if a['url'] == issue:
+            a['status'] = 'queued'
+            a['failure_reason'] += new_plan
+            break
     save_state(state)
-
     return 'ok'

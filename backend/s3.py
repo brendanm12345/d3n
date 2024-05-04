@@ -13,9 +13,7 @@ def get_state():
         print(e)
         return {
             'repository': 'akshgarg7/wordle',
-            'links': [],
-            'successes': [],
-            'failures': []
+            'issues': []
         }
 
 
