@@ -2,7 +2,7 @@ Follow this Playbook: Closing out issues on github.
 
 ## Procedure
 
-1. Open https://d3n.fly.dev/rank-issues/top with redirection enabled. It will redirect you to a GitHub issue website.
+1. Open https://d3n.fly.dev/rank-issues/top with redirection enabled. It will redirect you to a GitHub issue website. If it gives you a 404 / no issue/items found, then congrats! You are ALL done. Skip the rest of the steps and await further user input.
 2. Read the issue and understand everything that you have to do for it.
 3. Understand the rest of the codebase by reading about it from the website.
 4. Create an outline of steps you would need to do in order to fix the issue.
