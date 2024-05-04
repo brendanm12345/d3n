@@ -21,7 +21,6 @@ def fork_repository(original_repo, username, token):
     g = Github(token)
 
     try:
-        breakpoint()
         # Get the repository to fork
         repo = g.get_repo(original_repo)
 
@@ -34,6 +33,6 @@ def fork_repository(original_repo, username, token):
         return f"An error occurred: {str(e)}"
 
 # Example usage:
-repo = 'arviz-devs/arviz'
+repo = 'brendanm12345/wordle'
 print(os.getenv("GITHUB_API_KEY"))
 print(fork_repository(repo, 'akshgarg7', os.getenv('GITHUB_API_KEY')))
