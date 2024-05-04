@@ -57,7 +57,7 @@ FALLBACK_URLS = [
 
 
 @app.post("/repository/")
-async def repository(repository=FALLBACK_URL):
+async def repository(repository=FALLBACK_REPO):
     state = get_state()
     state['repository'] = repository
     issue_urls = get_all_issues(repository)
