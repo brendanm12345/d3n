@@ -1,7 +1,7 @@
 Follow this Playbook: Closing out issues on github.
 
 ## Procedure
-
+0. Create a file log.txt, where you record everything that you do, including code execution, terminal commands, and reasoning. 
 1. Open https://d3n.fly.dev/rank-issues/pop. This will return to you a json formatted as follows 
     output_json = {
         "title": issue_title,
