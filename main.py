@@ -89,7 +89,8 @@ async def get_starting_prompt() -> str:
 @app.get('/rank-issues/top')
 async def get_next_issue() -> str:
     if not ranked_urls:
-        raise HTTPException(status_code=404, detail="No items stored")
+        return RedirectResponse('https://github.com/brendanm12345/wordle/issues/1')
+        # raise HTTPException(status_code=404, detail="No items stored")
     id, link = ranked_urls[0]
     del ranked_urls[id]
     return RedirectResponse(link)

@@ -6,6 +6,6 @@ ENV APP_HOME /app
 WORKDIR $APP_HOME
 COPY . ./
 
-RUN pip install fastapi openai
+RUN pip install fastapi openai requests
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
