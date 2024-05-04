@@ -30,6 +30,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 app = FastAPI()
 
+ranked_urls = {}
 
 class GitHubIssue(BaseModel):
     title: str
@@ -66,8 +67,17 @@ async def rank_issues(issues: List[GitHubIssue]):
 
         ranked_urls = {str(i+1): issue['url']
                        for i, issue in enumerate(ranked_issues['ranked_issues'])}
-
+        
         # currently adding repeat urls to the dictionary
         return ranked_urls
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+
+@app.get('/rank-issues/top')
+async def get_next_issue() -> str:
+    if not ranked_urls:
+        raise HTTPException(status_code=404, detail="No items stored")
+    id, link = ranked_urls[0]
+    del ranked_urls[id]
+    return link
