@@ -13,7 +13,8 @@ def get_state():
         return {
             'repository': 'https://github.com/brendanm12345/wordle',
             'links': [],
-            'successes': []
+            'successes': [],
+            'failures': []
         }
 
 def save_state(state):

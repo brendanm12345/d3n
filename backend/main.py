@@ -122,6 +122,7 @@ async def reset():
     state = get_state()
     state['links'] = []
     state['repository'] = ''
+    state['failures'] = []
     state['successes'] = []
     save_state(state)
     return 'ok'
