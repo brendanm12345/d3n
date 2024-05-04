@@ -204,6 +204,6 @@ def add_retry(info: List[str]):
     issue = {'url': info[0], 'playbook': info[1]}
     state['issues'].append(issue)
 
-    save_state()
+    save_state(state)
 
     return 'ok'
