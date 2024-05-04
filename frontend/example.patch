@@ -1,0 +1,53 @@
+diff --git a/backend/__pycache__/main.cpython-310.pyc b/backend/__pycache__/main.cpython-310.pyc
+index 91f073f..53a6c26 100644
+Binary files a/backend/__pycache__/main.cpython-310.pyc and b/backend/__pycache__/main.cpython-310.pyc differ
+diff --git a/backend/fork_repo.py b/backend/fork_repo.py
+index f3c4d91..bdded64 100755
+--- a/backend/fork_repo.py
++++ b/backend/fork_repo.py
+@@ -1,9 +1,5 @@
+ import os 
+ from github import Github
+-from dotenv import load_dotenv
+-
+-os.environ.pop("GITHUB_API_KEY", None)
+-load_dotenv()
+ 
+ def fork_repository(original_repo, username, token):
+     """
+@@ -35,5 +31,4 @@ def fork_repository(original_repo, username, token):
+ 
+ # Example usage:
+ repo = 'arviz-devs/arviz'
+-print(os.getenv("GITHUB_API_KEY"))
+ print(fork_repository(repo, 'akshgarg7', os.getenv('GITHUB_API_KEY')))
+diff --git a/backend/main.py b/backend/main.py
+index 2371924..6781d46 100644
+--- a/backend/main.py
++++ b/backend/main.py
+@@ -105,25 +105,6 @@ async def get_starting_prompt() -> str:
+         raise HTTPException(status_code=404, detail="Prompt file not found")
+ 
+ 
+-@app.get('/instructions/parent')
+-async def orchestrate() -> str:
+-    state = get_state()
+-    if 'repository' not in state or len(state['repository']) == 0:
+-        return 'No repository set. Please poll this endpoint again in 10 seconds to re-try.'
+-    if 'links' not in state or len(state['links']) == 0:
+-        return 'No links set. Please poll this endpoint again in 10 seconds to re-try.'
+-    return """
+-    Repeat this process 3 times. Open a new tab. Type the following text into the textbox: "Open https://d3n.fly.dev/instructions.devin.md and follow instructions" and hit enter. Do NOT visit this link yourself. Only type it into the chat box and hit enter.
+-    """
+-
+-@app.post('/reset')
+-async def reset():
+-    state = get_state()
+-    state['links'] = []
+-    state['repository'] = ''
+-    save_state(state)
+-    return 'ok'
+-
+ @app.get('/rank-issues/pop')
+ async def get_next_issue() -> str:
+     state = get_state()
