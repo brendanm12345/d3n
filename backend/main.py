@@ -7,12 +7,19 @@ import json
 from github_launch import get_issue_details, get_comments
 import os
 from s3 import get_state, save_state
+from fastapi.middleware.cors import CORSMiddleware
+import requests
 
-# read file .openaikey
 client = OpenAI()
 
 app = FastAPI()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # List of allowed origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 @app.get("/")
 async def read_root():
     return {"message": "Hello World"}
@@ -106,3 +113,17 @@ async def peek_next_issue() -> str:
     else: 
         raise HTTPException(status_code=404, detail="No more data :(")
 
+@app.post('/success')
+def success(issue: str, description: str):
+
+    url = "https://interactify.email/api/internal/email?from=soham"
+    headers = {'Content-Type': 'application/json'}
+    data = {
+        "subject": f"Success: {issue}",
+        "body": description,
+        "timeout": 1
+    }
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+
+
+    return 'ok'
