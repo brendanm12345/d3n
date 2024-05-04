@@ -6,30 +6,16 @@ from openai import OpenAI
 import json
 from github_launch import get_issue_details, get_comments
 import os
+from s3 import get_state, save_state
 
 # read file .openaikey
 client = OpenAI()
 
 app = FastAPI()
 
-class GitHubIssue(BaseModel):
-    title: str
-    body: str
-    url: str
-
-
 @app.get("/")
 async def read_root():
     return {"message": "Hello World"}
-
-
-ranked_urls = []
-FALLBACK_URLS = [
-    "https://github.com/brendanm12345/wordle/issues/4",
-    "https://github.com/brendanm12345/wordle/issues/3",
-    "https://github.com/brendanm12345/wordle/issues/2",
-    "https://github.com/brendanm12345/wordle/issues/1"
-]
 
 class GitHubIssue(BaseModel):
     title: str
@@ -46,15 +32,15 @@ def issue_to_basemodel(issue_url):
     return GitHubIssue(title=title, body=full_string, url=issue_url)
 
 @app.post("/rank-issues/")
-async def rank_issues(issue_urls: List[str]):
-    # Ensure that file is cleared before populating with ranked urls 
-    with open('links_state.txt', 'w') as file:
-        file.write('')
-
-    if not issue_urls:
-        issue_urls = FALLBACK_URLS
-        print(f"Warning: Defaulting to fallback urls")
-
+async def rank_issues():
+    issue_urls = get_state()
+    if len(issue_urls) == 0:
+        issue_urls = [
+            "https://github.com/brendanm12345/wordle/issues/4",
+            "https://github.com/brendanm12345/wordle/issues/3",
+            "https://github.com/brendanm12345/wordle/issues/2",
+            "https://github.com/brendanm12345/wordle/issues/1"
+        ]
     issues = [issue_to_basemodel(issue) for issue in issue_urls]
     try:
         prompt = "\n".join(
@@ -74,18 +60,14 @@ async def rank_issues(issue_urls: List[str]):
 
         ranked_issues_json = response.choices[0].message.content.strip()
         ranked_issues = json.loads(ranked_issues_json)
-
-        # Write all the ranked urls to links_state.txt 
-        ranked_urls = ranked_urls + ranked_issues
-        with open('links_state.txt', 'w') as f: 
-            for r in ranked_urls: 
-                f.write(f'{r}\n')
-
+        save_state(ranked_issues)
+        return 'ok'
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get('/instructions')
+@app.get('/instructions.devin.md')
 async def get_starting_prompt() -> str:
     try: 
         with open('child_prompt.md', 'r') as file:
@@ -95,17 +77,12 @@ async def get_starting_prompt() -> str:
 
 @app.get('/rank-issues/top')
 async def get_next_issue() -> str:
-    with open('links_state.txt', 'r') as file:
-        all_links = file.readlines()
-
+    all_links = get_state()
     # Remove the first line
     if len(all_links) > 0:
         link = all_links.pop(0)
     else:
         raise HTTPException(status_code=404, detail="No more data :(")
-
-    # Write the remaining lines back to the file
-    with open('links_state.txt', 'w') as file:
-        file.writelines(all_links)
     
-    return link
+    save_state(all_links)    
+    return RedirectResponse(url=link)
