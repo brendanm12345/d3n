@@ -36,7 +36,10 @@ def get_issue_details(issue_url, access_token):
     full_string = ""
 
     if response.status_code == 200:
+
         issue_data = response.json()
+
+        title = issue_data['title']
     
         # Extract the issue description
         description = issue_data['body']
@@ -54,7 +57,7 @@ def get_issue_details(issue_url, access_token):
 
     else:
         print(f'Error: {response.status_code}')
-    return full_string
+    return title, full_string
 
 issue_details = get_issue_details(issue_url, GITHUB_API_KEY)
 print(issue_details)
