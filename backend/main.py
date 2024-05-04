@@ -1,4 +1,4 @@
-from typing import List, Annotated
+from typing import List, Annotated, Dict
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
@@ -145,18 +145,6 @@ async def get_next_issue() -> dict:
     else:
         raise HTTPException(status_code=404, detail="No more issues :)")
 
-    # state = get_state()
-    # # Remove the first line
-    # if len(state['links']) > 0:
-    #     link = state['links'].pop(0)
-    # else:
-    #     raise HTTPException(status_code=404, detail="No more data :(")
-
-    # save_state(state)
-
-    # return RedirectResponse(url=link)
-
-
 @app.get('/rank-issues/peek')
 async def peek_next_issue() -> str:
     state = get_state()
@@ -194,13 +182,28 @@ async def failure(issue: Annotated[str, Body()], playbook_used: Annotated[str, B
     return 'ok'
 
 
-# @app.get('/repository/create_fork')
-# def create_fork():
-#     state = get_state()
+@app.get('/retry')
+async def get_next_failure(): 
+    state = get_state()
+    
+    if len(state['failures']) == 0: 
+        raise HTTPException(status_code=404, detail='No more failed tasks! Please call this endpoint again to check again.')
 
-#     github = 'https://github.com/'
-#     repo = state['repository'][len(github)::]
+    next_failure = state['failures'].pop(0)
 
-#     forked_repo = fork_repository(repo, 'akshgarg7', os.getenv('GITHUB_API_KEY'))
+    save_state(state)
 
-#     return RedirectResponse(forked_repo)
+    return next_failure
+
+
+@app.post('/add_retry/{info}')
+def add_retry(info: List[str]):
+    # Ensure orchestrator creates a list info consisting of the url (idx 0) and the revised playbook (idx 1)
+    state = get_state()
+    
+    issue = {'url': info[0], 'playbook': info[1]}
+    state['issues'].append(issue)
+
+    save_state(state)
+
+    return 'ok'
