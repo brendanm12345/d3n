@@ -97,7 +97,7 @@ async def get_starting_prompt() -> str:
     except Exception as e:
         raise HTTPException(status_code=404, detail="Prompt file not found")
 
-@app.get('/rank-issues/top')
+@app.get('/rank-issues/pop')
 async def get_next_issue() -> str:
     state = get_state()
     # Remove the first line
