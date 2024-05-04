@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from openai import OpenAI
 import json
 from github_launch import get_issue_details, get_comments
+import os
 
 # read file .openaikey
 client = OpenAI()
@@ -22,7 +23,7 @@ async def read_root():
     return {"message": "Hello World"}
 
 
-ranked_urls = {}
+ranked_urls = []
 FALLBACK_URLS = [
     "https://github.com/brendanm12345/wordle/issues/4",
     "https://github.com/brendanm12345/wordle/issues/3",
@@ -58,25 +59,23 @@ async def rank_issues(issue_urls: List[str]):
         )
 
         messages = [
-            {"role": "system", "content": "You are a GitHub issue ranker, skilled in prioritizing issues based on their importance. You only output JSON with no explanation or preamble."},
+            {"role": "system", "content": "You are a GitHub issue ranker, skilled in prioritizing issues based on their importance. You only output JSON with no explanation or preamble. Example of response: [\"https://example.com/url1\", \"https://example.com/url2\", ...]. Only output the JSON, nothing else."},
             {"role": "user", "content": prompt}
         ]
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4-turbo",
             messages=messages,
             temperature=0,
         )
 
         ranked_issues_json = response.choices[0].message.content.strip()
         ranked_issues = json.loads(ranked_issues_json)
-
-        print(ranked_issues)
-
-        ranked_urls = {str(i+1): issue['url']
-                       for i, issue in enumerate(ranked_issues['ranked_issues'])}
-        
         # currently adding repeat urls to the dictionary
-        return ranked_urls
+
+
+        ranked_urls = ranked_urls+ ranked_issues
+        # return ranked_issues
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
