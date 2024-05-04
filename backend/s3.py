@@ -12,8 +12,8 @@ def get_state():
     except Exception as e:
         print(e)
         return {
-            'repository': 'https://github.com/brendanm12345/wordle',
-            'issues': [],
+            'repository': 'akshgarg7/wordle',
+            'links': [],
             'successes': [],
             'failures': []
         }
