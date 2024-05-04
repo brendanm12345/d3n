@@ -1,7 +1,7 @@
 Playbook: Closing out issues on github. 
 
 ## Procedure
-1. Access the webpage at link: https://github.com/arviz-devs/arviz/issues/2345
+1. Access the webpage at url: https://github.com/brendanm12345/wordle/issues
 2. Read the issue and understand everything that you have to do for it. 
 3. Understand the rest of the codebase by reading about it from the website. 
 4. Create an outline of steps you would need to do in order to fix the issue. 
