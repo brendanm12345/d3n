@@ -1,5 +1,5 @@
-from typing import List
-from fastapi import FastAPI, HTTPException
+from typing import List, Annotated
+from fastapi import FastAPI, HTTPException, Body
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from openai import OpenAI
@@ -7,14 +7,21 @@ import json
 from github_launch import get_issue_details, get_comments, get_all_issues
 import os
 from s3 import get_state, save_state
+from fastapi.middleware.cors import CORSMiddleware
+import requests
 
-import dotenv
-dotenv.load_dotenv()
-
-# read file .openaikey
 client = OpenAI()
 FALLBACK_REPO = "brendanm12345/wordle"
 app = FastAPI()
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # List of allowed origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 
 @app.get("/")
@@ -50,7 +57,7 @@ FALLBACK_URLS = [
 
 
 @app.post("/repository/")
-async def rank_issues(repository=FALLBACK_REPO):
+async def repository(repository=FALLBACK_URL):
     state = get_state()
     state['repository'] = repository
     issue_urls = get_all_issues(repository)
@@ -98,7 +105,7 @@ async def get_starting_prompt() -> str:
         raise HTTPException(status_code=404, detail="Prompt file not found")
 
 
-@app.get('/rank-issues/top')
+@app.get('/rank-issues/pop')
 async def get_next_issue() -> str:
     state = get_state()
     # Remove the first line
@@ -119,3 +126,18 @@ async def peek_next_issue() -> str:
         return state['links'][0]
     else:
         raise HTTPException(status_code=404, detail="No more data :(")
+
+
+@app.post('/success')
+async def success(issue: Annotated[str, Body()], description: Annotated[str, Body()]):
+
+    url = "https://interactify.email/api/internal/email?from=soham"
+    headers = {'Content-Type': 'application/json'}
+    data = {
+        "subject": f"Success: {issue}",
+        "body": description,
+        "timeout": 1
+    }
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+
+    return 'ok'
