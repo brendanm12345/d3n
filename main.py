@@ -3,15 +3,13 @@ from typing import List
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from openai import OpenAI
-from dotenv import load_dotenv
 import json
 
-load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=OPENAI_API_KEY)
+# read file .openaikey
+key = open(".openaikey", "r").readline()
+client = OpenAI(api_key=key)
 
 app = FastAPI()
-
 
 class GitHubIssue(BaseModel):
     title: str
@@ -23,12 +21,6 @@ class GitHubIssue(BaseModel):
 async def read_root():
     return {"message": "Hello World"}
 
-
-load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=OPENAI_API_KEY)
-
-app = FastAPI()
 
 ranked_urls = {}
 
