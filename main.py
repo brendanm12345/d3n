@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from openai import OpenAI
 import json
+from github_launch import get_issue_details, get_comments
 
 # read file .openaikey
 client = OpenAI()
@@ -22,6 +23,12 @@ async def read_root():
 
 
 ranked_urls = {}
+FALLBACK_URLS = [
+    "https://github.com/brendanm12345/wordle/issues/4",
+    "https://github.com/brendanm12345/wordle/issues/3",
+    "https://github.com/brendanm12345/wordle/issues/2",
+    "https://github.com/brendanm12345/wordle/issues/1"
+]
 
 class GitHubIssue(BaseModel):
     title: str
@@ -33,14 +40,23 @@ class GitHubIssue(BaseModel):
 async def read_root():
     return {"message": "Hello World"}
 
+def issue_to_basemodel(issue_url):
+    title, full_string = get_issue_details(issue_url, os.getenv('GITHUB_API_KEY'))
+    return GitHubIssue(title=title, body=full_string, url=issue_url)
 
 @app.post("/rank-issues/")
-async def rank_issues(issues: List[GitHubIssue]):
+async def rank_issues(issue_urls: List[str]):
+    if not issue_urls:
+        issue_urls = FALLBACK_URLS
+        print(f"Warning: Defaulting to fallback urls")
+
+    issues = [issue_to_basemodel(issue) for issue in issue_urls]
     try:
         prompt = "\n".join(
             [f"{i + 1}: Title: {issue.title}, Body: {issue.body}, URL: {issue.url}" for i,
                 issue in enumerate(issues)]
         )
+
         messages = [
             {"role": "system", "content": "You are a GitHub issue ranker, skilled in prioritizing issues based on their importance. You only output JSON with no explanation or preamble."},
             {"role": "user", "content": prompt}

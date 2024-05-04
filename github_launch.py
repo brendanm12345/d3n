@@ -28,21 +28,26 @@ def get_comments(url, access_token):
     return comments
 
 # GitHub API endpoint for the specific issue
-issue_url = 'https://api.github.com/repos/arviz-devs/arviz/issues/2345'
+# issue_url = 'https://api.github.com/repos/arviz-devs/arviz/issues/2345'
+issue_url = 'https://github.com/brendanm12345/wordle/issues/4'
 
 def get_issue_details(issue_url, access_token):
+    # take the github url and appent api. to the beginning
+    issue_url = issue_url.replace('github.com', 'api.github.com/repos')
     # Retrieve the issue details
     response = requests.get(issue_url, headers={'Authorization': f'token {access_token}'})
     full_string = ""
 
     if response.status_code == 200:
-
+        print(response)
         issue_data = response.json()
 
         title = issue_data['title']
     
         # Extract the issue description
         description = issue_data['body']
+        if description is None:
+            description = ''
         full_string += description + '\n'
     
         # Extract the reactions
@@ -53,11 +58,15 @@ def get_issue_details(issue_url, access_token):
         comments = get_comments(comments_url, access_token)
     
         for comment in comments:
-            full_string += comment['body'] + '\n'
+            if comment['body'] is not None:
+                full_string += comment['body'] + '\n'
 
     else:
         print(f'Error: {response.status_code}')
     return title, full_string
 
-issue_details = get_issue_details(issue_url, GITHUB_API_KEY)
-print(issue_details)
+if __name__ == '__main__':
+    issue_details = get_issue_details(issue_url, GITHUB_API_KEY)
+    print(issue_details)
+# issue_details = get_issue_details(issue_url, GITHUB_API_KEY)
+# print(issue_details)
