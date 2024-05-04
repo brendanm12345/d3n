@@ -18,6 +18,6 @@ Follow this Playbook: Closing out issues on github.
 4. Execute the task.
 5. If the task is successful make a post request to https://d3n.fly.dev/success with the following JSON body: { "issue": "[issue link]", "description": "[description of the task you did] }
 6. If you encounter any installation issues, pip install those packages.
-7. If unsuccessful, make a post request to now make a post request to d3n.fly.dev/failure/ and pass in the issue url, the playbook used, and your reasoning for everything that went wrong.
+7. If unsuccessful, make a post request to the https://d3n.fly.dev/failure with a detailed log of everything you did and the errors you encountered. Include what you typed in the terminal/code you changed. now make a post request to d3n.fly.dev/failure/ and pass in the issue url, the playbook used, and your reasoning for everything that went wrong.
 8. If successful, create a pull request for the forked repository to show what you changed.
 9. go back to task 1.
