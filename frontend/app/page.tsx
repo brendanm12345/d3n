@@ -10,13 +10,17 @@ export default function Component() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const repoPath = repoUrl.match(/github\.com\/([^\/]+\/[^\/]+)/)?.[1];
+
+    console.log('Repo path:', repoPath)
+
     try {
       const response = await fetch('https://d3n.fly.dev/repository', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ repository: repoUrl }),
+        body: JSON.stringify({ repository: repoPath }),
       });
 
       const data = await response.json();
