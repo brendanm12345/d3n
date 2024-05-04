@@ -1,5 +1,5 @@
-from typing import List
-from fastapi import FastAPI, HTTPException
+from typing import List, Annotated
+from fastapi import FastAPI, HTTPException, Body
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from openai import OpenAI
@@ -119,7 +119,7 @@ async def peek_next_issue() -> str:
         raise HTTPException(status_code=404, detail="No more data :(")
 
 @app.post('/success')
-def success(issue: str, description: str):
+async def success(issue: Annotated[str, Body()], description: Annotated[str, Body()]):
 
     url = "https://interactify.email/api/internal/email?from=soham"
     headers = {'Content-Type': 'application/json'}
