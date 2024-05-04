@@ -15,7 +15,7 @@ export default function Component() {
     console.log('Repo path:', repoPath)
 
     try {
-      const response = await fetch('https://d3n.fly.dev/repository/', {
+      const response = await fetch('https://d3n.fly.dev/repository', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
