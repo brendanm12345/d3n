@@ -6,7 +6,7 @@ from openai import OpenAI
 import json
 from github_launch import get_issue_details, get_comments, get_all_issues
 import os
-from s3 import get_state, save_state
+from s3 import get_state, save_state, create_patch
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 
@@ -109,11 +109,11 @@ async def get_starting_prompt() -> str:
 async def orchestrate() -> str:
     state = get_state()
     if 'repository' not in state or len(state['repository']) == 0:
-        return 'No repository set. Please poll this endpoint again in 10 seconds to re-try.'
+        return 'No repository set. Please poll this endpoint again to re-try.'
     if 'links' not in state or len(state['links']) == 0:
-        return 'No links set. Please poll this endpoint again in 10 seconds to re-try.'
+        return 'No links set. Please poll this endpoint again to re-try.'
     return """
-    Repeat this process 3 times. Open a new tab. Type the following text into the textbox: "Open https://d3n.fly.dev/instructions.devin.md and follow instructions" and hit enter. Do NOT visit this link yourself. Only type it into the chat box and hit enter.
+    Repeat this process 3 times. Open a new tab to https://preview.devin.ai. Type the following text into the textbox: "Open https://d3n.fly.dev/instructions.devin.md and follow instructions" and hit enter. Do NOT visit this link yourself. Only type it into the chat box and hit enter.
     """
 
 @app.post('/reset')
@@ -121,6 +121,7 @@ async def reset():
     state = get_state()
     state['links'] = []
     state['repository'] = ''
+    state['successes'] = []
     save_state(state)
     return 'ok'
 
@@ -148,15 +149,16 @@ async def peek_next_issue() -> str:
 
 
 @app.post('/success')
-async def success(issue: Annotated[str, Body()], description: Annotated[str, Body()]):
-
+async def success(issue: Annotated[str, Body()], description: Annotated[str, Body()], pr_link: Annotated[str, Body()]):
+    # patch_url = create_patch(patch_file)
     url = "https://interactify.email/api/internal/email?from=soham"
     headers = {'Content-Type': 'application/json'}
-    data = {
+    requests.post(url, headers=headers, data=json.dumps({
         "subject": f"Success: {issue}",
-        "body": description,
-        "timeout": 1
-    }
-    response = requests.post(url, headers=headers, data=json.dumps(data))
-
+        "body": description + "<br/><br/>" + pr_link,
+        "timeout": 10
+    }))
+    state = get_state()
+    state['successes'].append(issue)
+    save_state(state)
     return 'ok'
