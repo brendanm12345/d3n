@@ -1,5 +1,9 @@
 import os 
 from github import Github
+from dotenv import load_dotenv
+
+os.environ.pop("GITHUB_API_KEY", None)
+load_dotenv()
 
 def fork_repository(original_repo, username, token):
     """
@@ -31,4 +35,5 @@ def fork_repository(original_repo, username, token):
 
 # Example usage:
 repo = 'arviz-devs/arviz'
+print(os.getenv("GITHUB_API_KEY"))
 print(fork_repository(repo, 'akshgarg7', os.getenv('GITHUB_API_KEY')))
