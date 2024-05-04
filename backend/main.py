@@ -9,6 +9,7 @@ import os
 from s3 import get_state, save_state
 from fastapi.middleware.cors import CORSMiddleware
 import requests
+from fork_repo import fork_repository
 
 client = OpenAI()
 FALLBACK_REPO = "brendanm12345/wordle"
@@ -132,8 +133,9 @@ async def get_next_issue() -> str:
         link = state['links'].pop(0)
     else:
         raise HTTPException(status_code=404, detail="No more data :(")
+    
+    save_state(state)    
 
-    save_state(state)
     return RedirectResponse(url=link)
 
 
@@ -160,3 +162,15 @@ async def success(issue: Annotated[str, Body()], description: Annotated[str, Bod
     response = requests.post(url, headers=headers, data=json.dumps(data))
 
     return 'ok'
+
+
+@app.get('/repository/create_fork')
+def create_fork(): 
+    state = get_state()
+    
+    github = 'https://github.com/'
+    repo = state['repository'][len(github)::]
+
+    forked_repo = fork_repository(repo, 'akshgarg7', os.getenv('GITHUB_API_KEY'))
+
+    return RedirectResponse(forked_repo)
