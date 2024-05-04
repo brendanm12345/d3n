@@ -127,17 +127,33 @@ async def reset():
     return 'ok'
 
 @app.get('/rank-issues/pop')
-async def get_next_issue() -> str:
+async def get_next_issue() -> dict:
     state = get_state()
-    # Remove the first line
-    if len(state['links']) > 0:
-        link = state['links'].pop(0)
-    else:
-        raise HTTPException(status_code=404, detail="No more data :(")
-    
-    save_state(state)    
+    repo = state['repository']
+    forked_repo = fork_repository(repo, 'akshgarg7', os.getenv('GITHUB_API_KEY'))
 
-    return RedirectResponse(url=link)
+    # we need to load the information from each issue. 
+    issue_title, issue_details = get_issue_details(state['links'][0], os.getenv('GITHUB_API_KEY'))
+
+    output_json = {
+        "title": issue_title,
+        "issue details": issue_details,
+        "forked repo": forked_repo
+    }
+
+    return output_json
+
+
+    # state = get_state()
+    # # Remove the first line
+    # if len(state['links']) > 0:
+    #     link = state['links'].pop(0)
+    # else:
+    #     raise HTTPException(status_code=404, detail="No more data :(")
+    
+    # save_state(state)    
+
+    # return RedirectResponse(url=link)
 
 
 @app.get('/rank-issues/peek')
@@ -166,13 +182,13 @@ async def success(issue: Annotated[str, Body()], description: Annotated[str, Bod
     return 'ok'
 
 
-@app.get('/repository/create_fork')
-def create_fork(): 
-    state = get_state()
+# @app.get('/repository/create_fork')
+# def create_fork(): 
+#     state = get_state()
     
-    github = 'https://github.com/'
-    repo = state['repository'][len(github)::]
+#     github = 'https://github.com/'
+#     repo = state['repository'][len(github)::]
 
-    forked_repo = fork_repository(repo, 'akshgarg7', os.getenv('GITHUB_API_KEY'))
+#     forked_repo = fork_repository(repo, 'akshgarg7', os.getenv('GITHUB_API_KEY'))
 
-    return RedirectResponse(forked_repo)
+#     return RedirectResponse(forked_repo)
