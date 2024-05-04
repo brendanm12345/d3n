@@ -1,4 +1,4 @@
-
+from github import Github
 import requests
 import os 
 GITHUB_API_KEY = os.getenv('GITHUB_API_KEY')
@@ -65,8 +65,23 @@ def get_issue_details(issue_url, access_token):
         print(f'Error: {response.status_code}')
     return title, full_string
 
+
+def get_all_issues(repo):
+    g = Github(GITHUB_API_KEY)
+
+    # Get the repository
+    repo = g.get_repo(repo)
+
+    issues =repo.get_issues(state="all")
+    filtered_issues = issues[:50]
+    issue_urls = [issue.html_url for issue in filtered_issues]
+    return issue_urls
+
+
 if __name__ == '__main__':
     issue_details = get_issue_details(issue_url, GITHUB_API_KEY)
     print(issue_details)
+
+    print(get_all_issues("brendanm12345/wordle"))
 # issue_details = get_issue_details(issue_url, GITHUB_API_KEY)
 # print(issue_details)

@@ -4,21 +4,13 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from openai import OpenAI
 import json
-from github_launch import get_issue_details, get_comments, get_all_issues
+from backend.github_launch import get_issue_details, get_comments
 import os
-from s3 import get_state, save_state
-
-import dotenv 
-dotenv.load_dotenv()
 
 # read file .openaikey
 client = OpenAI()
-FALLBACK_URL = "brendanm12345/wordle"
-app = FastAPI()
 
-@app.get("/")
-async def read_root():
-    return {"message": "Hello World"}
+app = FastAPI()
 
 class GitHubIssue(BaseModel):
     title: str
@@ -30,15 +22,8 @@ class GitHubIssue(BaseModel):
 async def read_root():
     return {"message": "Hello World"}
 
-# @app.post('/repository')
-# def set_repository(repository: str):
-#     state = get_state()
-#     state['repository'] = repository
-#     all_issues = get_all_issues(repository)
-#     state['links'] = all_issues
-#     save_state(state)
-    # return 'ok'
 
+ranked_urls = []
 FALLBACK_URLS = [
     "https://github.com/brendanm12345/wordle/issues/4",
     "https://github.com/brendanm12345/wordle/issues/3",
@@ -46,11 +31,30 @@ FALLBACK_URLS = [
     "https://github.com/brendanm12345/wordle/issues/1"
 ]
 
-@app.post("/repository/")
-async def rank_issues(repository = FALLBACK_URL):
-    state = get_state()
-    state['repository'] = repository
-    issue_urls = get_all_issues(repository)
+class GitHubIssue(BaseModel):
+    title: str
+    body: str
+    url: str
+
+
+@app.get("/")
+async def read_root():
+    return {"message": "Hello World"}
+
+def issue_to_basemodel(issue_url):
+    title, full_string = get_issue_details(issue_url, os.getenv('GITHUB_API_KEY'))
+    return GitHubIssue(title=title, body=full_string, url=issue_url)
+
+@app.post("/rank-issues/")
+async def rank_issues(issue_urls: List[str]):
+    # Ensure that file is cleared before populating with ranked urls 
+    with open('links_state.txt', 'w') as file:
+        file.write('')
+
+    if not issue_urls:
+        issue_urls = FALLBACK_URLS
+        print(f"Warning: Defaulting to fallback urls")
+
     issues = [issue_to_basemodel(issue) for issue in issue_urls]
     try:
         prompt = "\n".join(
@@ -70,22 +74,18 @@ async def rank_issues(repository = FALLBACK_URL):
 
         ranked_issues_json = response.choices[0].message.content.strip()
         ranked_issues = json.loads(ranked_issues_json)
-        state = get_state()
-        state['links'] = ranked_issues
-        save_state(state)
-        return ranked_issues
+
+        # Write all the ranked urls to links_state.txt 
+        ranked_urls = ranked_urls + ranked_issues
+        with open('links_state.txt', 'w') as f: 
+            for r in ranked_urls: 
+                f.write(f'{r}\n')
+
     except Exception as e:
-        print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
-def issue_to_basemodel(issue_url):
-    title, full_string = get_issue_details(issue_url, os.getenv('GITHUB_API_KEY'))
-    return GitHubIssue(title=title, body=full_string, url=issue_url)
-
-
-@app.get('/instructions.devin.md')
+@app.get('/instructions')
 async def get_starting_prompt() -> str:
     try: 
         with open('child_prompt.md', 'r') as file:
@@ -95,22 +95,17 @@ async def get_starting_prompt() -> str:
 
 @app.get('/rank-issues/top')
 async def get_next_issue() -> str:
-    state = get_state()
+    with open('links_state.txt', 'r') as file:
+        all_links = file.readlines()
+
     # Remove the first line
-    if len(state['links']) > 0:
-        link = state['links'].pop(0)
+    if len(all_links) > 0:
+        link = all_links.pop(0)
     else:
         raise HTTPException(status_code=404, detail="No more data :(")
-    
-    save_state(state)    
-    return RedirectResponse(url=link)
 
-@app.get('/rank-issues/peek')
-async def peek_next_issue() -> str:
-    state = get_state() 
+    # Write the remaining lines back to the file
+    with open('links_state.txt', 'w') as file:
+        file.writelines(all_links)
     
-    if len(state['links']) > 0: 
-        return state['links'][0]
-    else: 
-        raise HTTPException(status_code=404, detail="No more data :(")
-
+    return link
