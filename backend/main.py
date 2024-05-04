@@ -99,7 +99,7 @@ def issue_to_basemodel(issue_url):
 @app.get('/instructions.devin.md')
 async def get_starting_prompt() -> str:
     try:
-        with open('child_prompt.md', 'r') as file:
+        with open('child_prompt.devin.md', 'r') as file:
             return file.read()
     except Exception as e:
         raise HTTPException(status_code=404, detail="Prompt file not found")
