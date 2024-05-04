@@ -8,17 +8,19 @@ from github_launch import get_issue_details, get_comments, get_all_issues
 import os
 from s3 import get_state, save_state
 
-import dotenv 
+import dotenv
 dotenv.load_dotenv()
 
 # read file .openaikey
 client = OpenAI()
-FALLBACK_URL = "brendanm12345/wordle"
+FALLBACK_REPO = "brendanm12345/wordle"
 app = FastAPI()
+
 
 @app.get("/")
 async def read_root():
     return {"message": "Hello World"}
+
 
 class GitHubIssue(BaseModel):
     title: str
@@ -46,8 +48,9 @@ FALLBACK_URLS = [
     "https://github.com/brendanm12345/wordle/issues/1"
 ]
 
+
 @app.post("/repository/")
-async def rank_issues(repository = FALLBACK_URL):
+async def rank_issues(repository=FALLBACK_REPO):
     state = get_state()
     state['repository'] = repository
     issue_urls = get_all_issues(repository)
@@ -59,7 +62,8 @@ async def rank_issues(repository = FALLBACK_URL):
         )
 
         messages = [
-            {"role": "system", "content": "You are a GitHub issue ranker, skilled in prioritizing issues based on their difficulty. Easiest issues should come first, and order them from easiest to hardest. You only output JSON with no explanation or preamble. Example of response: [\"https://example.com/url1\", \"https://example.com/url2\", ...]. Only output the JSON, nothing else."},
+            {"role": "system",
+                "content": "You are a GitHub issue ranker, skilled in prioritizing issues based on their difficulty. Easiest issues should come first, and order them from easiest to hardest. You only output JSON with no explanation or preamble. Example of response: [\"https://example.com/url1\", \"https://example.com/url2\", ...]. Only output the JSON, nothing else."},
             {"role": "user", "content": prompt}
         ]
         response = client.chat.completions.create(
@@ -79,19 +83,20 @@ async def rank_issues(repository = FALLBACK_URL):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
 def issue_to_basemodel(issue_url):
-    title, full_string = get_issue_details(issue_url, os.getenv('GITHUB_API_KEY'))
+    title, full_string = get_issue_details(
+        issue_url, os.getenv('GITHUB_API_KEY'))
     return GitHubIssue(title=title, body=full_string, url=issue_url)
 
 
 @app.get('/instructions.devin.md')
 async def get_starting_prompt() -> str:
-    try: 
+    try:
         with open('child_prompt.md', 'r') as file:
             return file.read()
     except Exception as e:
         raise HTTPException(status_code=404, detail="Prompt file not found")
+
 
 @app.get('/rank-issues/top')
 async def get_next_issue() -> str:
@@ -101,16 +106,16 @@ async def get_next_issue() -> str:
         link = state['links'].pop(0)
     else:
         raise HTTPException(status_code=404, detail="No more data :(")
-    
-    save_state(state)    
+
+    save_state(state)
     return RedirectResponse(url=link)
+
 
 @app.get('/rank-issues/peek')
 async def peek_next_issue() -> str:
-    state = get_state() 
-    
-    if len(state['links']) > 0: 
-        return state['links'][0]
-    else: 
-        raise HTTPException(status_code=404, detail="No more data :(")
+    state = get_state()
 
+    if len(state['links']) > 0:
+        return state['links'][0]
+    else:
+        raise HTTPException(status_code=404, detail="No more data :(")
