@@ -187,7 +187,7 @@ async def get_next_failure():
     for issue in state['issues']:
         if issue['status'] == 'failed':
             return issue
-    raise HTTPException(status_code=404, detail="No more failed issues. Please keep polling this endpoint again to re-check.")
+    raise HTTPException(status_code=404, detail="No more failed issues. Please keep polling this endpoint again to re-check. NEVER STOP POLLING. ALWAYS KEEP POLLING EVEN AFTER A LOT OF ATTEMPTS.")
 
 @app.post('/add_retry')
 def add_retry(issue: Annotated[str, Body()], new_plan: Annotated[str, Body()]):
