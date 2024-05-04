@@ -20,17 +20,14 @@ def fork_repository(original_repo, username, token):
     # Authenticate with GitHub using the provided token
     g = Github(token)
 
-    try:
-        # Get the repository to fork
-        repo = g.get_repo(original_repo)
+    # Get the repository to fork
+    repo = g.get_repo(original_repo)
 
-        # Fork the repository to the user's account
-        forked_repo = repo.create_fork()
-        
-        # Return the HTML URL of the forked repository
-        return forked_repo.html_url
-    except Exception as e:
-        return f"An error occurred: {str(e)}"
+    # Fork the repository to the user's account
+    forked_repo = repo.create_fork()
+    
+    # Return the HTML URL of the forked repository
+    return forked_repo.html_url
 
 # Example usage:
 repo = 'brendanm12345/wordle'
