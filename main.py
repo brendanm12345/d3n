@@ -47,6 +47,10 @@ def issue_to_basemodel(issue_url):
 
 @app.post("/rank-issues/")
 async def rank_issues(issue_urls: List[str]):
+    # Ensure that file is cleared before populating with ranked urls 
+    with open('links_state.txt', 'w') as file:
+        file.write('')
+
     if not issue_urls:
         issue_urls = FALLBACK_URLS
         print(f"Warning: Defaulting to fallback urls")
@@ -70,11 +74,12 @@ async def rank_issues(issue_urls: List[str]):
 
         ranked_issues_json = response.choices[0].message.content.strip()
         ranked_issues = json.loads(ranked_issues_json)
-        # currently adding repeat urls to the dictionary
 
-
-        ranked_urls = ranked_urls+ ranked_issues
-        # return ranked_issues
+        # Write all the ranked urls to links_state.txt 
+        ranked_urls = ranked_urls + ranked_issues
+        with open('links_state.txt', 'w') as f: 
+            for r in ranked_urls: 
+                f.write(f'{r}\n')
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -82,14 +87,25 @@ async def rank_issues(issue_urls: List[str]):
 
 @app.get('/instructions')
 async def get_starting_prompt() -> str:
-    with open('child_prompt.md', 'r') as file:
-        return file.read()
-    raise HTTPException(status_code=404, detail="Prompt file not found")
+    try: 
+        with open('child_prompt.md', 'r') as file:
+            return file.read()
+    except Exception as e:
+        raise HTTPException(status_code=404, detail="Prompt file not found")
 
 @app.get('/rank-issues/top')
 async def get_next_issue() -> str:
-    if not ranked_urls:
-        raise HTTPException(status_code=404, detail="No items stored")
-    id, link = ranked_urls[0]
-    del ranked_urls[id]
-    return RedirectResponse(link)
+    with open('links_state.txt', 'r') as file:
+        all_links = file.readlines()
+
+    # Remove the first line
+    if len(all_links) > 0:
+        link = all_links.pop(0)
+    else:
+        raise HTTPException(status_code=404, detail="No more data :(")
+
+    # Write the remaining lines back to the file
+    with open('links_state.txt', 'w') as file:
+        file.writelines(all_links)
+    
+    return link
