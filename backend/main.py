@@ -4,14 +4,14 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from openai import OpenAI
 import json
-from github_launch import get_issue_details, get_comments
+from github_launch import get_issue_details, get_comments, get_all_issues
 import os
 from s3 import get_state, save_state
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 
 client = OpenAI()
-
+FALLBACK_URL = "brendanm12345/wordle"
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -34,12 +34,14 @@ class GitHubIssue(BaseModel):
 async def read_root():
     return {"message": "Hello World"}
 
-@app.post('/repository')
-def set_repository(repository: str):
-    state = get_state()
-    state['repository'] = repository
-    save_state(state)
-    return 'ok'
+# @app.post('/repository')
+# def set_repository(repository: str):
+#     state = get_state()
+#     state['repository'] = repository
+#     all_issues = get_all_issues(repository)
+#     state['links'] = all_issues
+#     save_state(state)
+    # return 'ok'
 
 FALLBACK_URLS = [
     "https://github.com/brendanm12345/wordle/issues/4",
@@ -48,8 +50,11 @@ FALLBACK_URLS = [
     "https://github.com/brendanm12345/wordle/issues/1"
 ]
 
-@app.post("/rank-issues/")
-async def rank_issues(issue_urls: List[str] = FALLBACK_URLS):
+@app.post("/repository/")
+async def rank_issues(repository = FALLBACK_URL):
+    state = get_state()
+    state['repository'] = repository
+    issue_urls = get_all_issues(repository)
     issues = [issue_to_basemodel(issue) for issue in issue_urls]
     try:
         prompt = "\n".join(
@@ -72,7 +77,7 @@ async def rank_issues(issue_urls: List[str] = FALLBACK_URLS):
         state = get_state()
         state['links'] = ranked_issues
         save_state(state)
-        return 'ok'
+        return ranked_issues
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
