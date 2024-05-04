@@ -82,7 +82,6 @@ async def repository(repository=FALLBACK_REPO):
 
         ranked_issues_json = response.choices[0].message.content.strip()
         ranked_issues = json.loads(ranked_issues_json)
-        state = get_state()
         state['links'] = ranked_issues
         save_state(state)
         return ranked_issues
