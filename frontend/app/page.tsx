@@ -45,6 +45,9 @@ export default function Component() {
         <canvas ref={canvasRef} id='gradient-canvas' />
       </div>
       <div className='container text-center mxx-auto max-w-md space-y-6'>
+        <p>
+          <code>https://d3n.run</code>
+        </p>
         <h1 className='text-8xl'>
           <span className='line-through'>&nbsp;k8s&nbsp;</span> d3n
         </h1>
