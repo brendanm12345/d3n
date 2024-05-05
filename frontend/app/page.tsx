@@ -57,7 +57,7 @@ export default function Component() {
                 Enter a github url and we&apos;ll have one Devin orchestrate a fleet of devins to work on the issues in that Repo
               </Label>
               <Input
-                className='w-full rounded-md border-gray-200 bg-white p-2 text-white focus:border-gray-400 focus:outline-none'
+                className='w-full rounded-md border-gray-200 bg-white p-2 text-black focus:border-gray-400 focus:outline-none'
                 id='repo-url'
                 placeholder='https://github.com/user/repo'
                 type='text'

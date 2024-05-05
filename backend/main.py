@@ -128,7 +128,9 @@ async def reset():
 async def get_next_issue() -> dict:
     state = get_state()
     if state['issues']:
-        current_issue = next((issue for issue in reversed(state['issues']) if issue['status'] == 'queued'), None)
+        current_issue = next((issue for issue in reversed(state['issues']) if len(issue['failure_reason']) > 0 and issue['status'] == 'queued'), None) 
+        if current_issue is None:
+            current_issue = next((issue for issue in reversed(state['issues']) if issue['status'] == 'queued'), None)
         if current_issue is None:
             raise HTTPException(status_code=404, detail="No more queued issues")
         current_issue['status'] = 'processing'
