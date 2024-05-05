@@ -73,7 +73,7 @@ export default function Component() {
             </Button>
           </form>
         ) : (
-          <p>Open Devin to watch the magic.</p>
+          <p>Orchestrator is currently busy. Please wait for this job group to finish.</p>
         )}
       </div>
     </main>
