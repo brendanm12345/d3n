@@ -48,10 +48,8 @@ export default function Component() {
         <p>
           <code>https://d3n.run</code>
         </p>
-        <h1 className='text-8xl'>
-          <span className='line-through'>&nbsp;k8s&nbsp;</span> d3n
-        </h1>
-        <p>the orchestration of agents</p>
+        <h1 className='text-8xl'>d3n</h1>
+        <p>the k8s of agent orchestration</p>
         {!success ? (
           <form className='space-y-4' onSubmit={handleSubmit}>
             <div className='space-y-2'>
