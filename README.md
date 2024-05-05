@@ -1,7 +1,7 @@
 # d3n
 ![ScreenRecording2024-05-05at2 33 05PM-ezgif com-video-to-gif-converter (1)](https://github.com/brendanm12345/d3n/assets/72267866/69ac2384-4b92-477c-9b58-93d81273ba8e)
 
-An agent orchestration framework for spawning a fleet of Devins to work together
+An agent orchestration framework for spawning a fleet of Devins to work together.
 
 ## Demo
 https://twitter.com/SohamGovande/status/1787213625880609112
